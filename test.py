@@ -72,7 +72,8 @@ def test_get_event_data(capsys, monkeypatch, tmpdir):
     verify_parsed_test_event_data(event_data)
 
     captured = capsys.readouterr()
-    assert(captured[0].startswith("{u'actions': u'created',"))
+    assert("'actions': " in captured[0])
+    assert("'created'," in captured[0])
     assert('' == captured[1])
 
 
