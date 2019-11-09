@@ -118,3 +118,26 @@ def test_get_event_trigger(monkeypatch, tmpdir):
 
     event_name = actions.get_event_trigger()
     assert(event_name == 'issue_comment.created')
+
+
+def test_triggered_by(monkeypatch, tmpdir):
+    """Test triggered_by function."""
+    monkeypatch.setenv('GITHUB_EVENT_NAME', 'issue_comment')
+    test_event_data = tmpdir.join('test_event_data.json')
+    test_event_data.write(TEST_EVENT_DATA_RAW)
+    monkeypatch.setenv('GITHUB_EVENT_PATH', str(test_event_data))
+
+    assert(actions.triggered_by('issue_comment'))
+    assert(actions.triggered_by('push') is False)
+    assert(actions.triggered_by('issue_comment', activity_type='created'))
+    assert(actions.triggered_by('issue_comment', activity_type='deleted') is False)
+    assert(actions.triggered_by('issue_comment', activity_type='edited') is False)
+
+    # using unknown event names or activity types triggers an exception
+    with pytest.raises(ValueError):
+        actions.triggered_by('no_such_event_name')
+        actions.triggered_by('delete')  # 'deleted' is correct, 'delete' is not
+        actions.triggered_by('issue_comment', activity_type='no_such_activity_type')
+        actions.triggered_by('issue_comment', activity_type='opened')
+        actions.triggered_by('no_such_event_name', activity_type='no_such_activity_type')
+        actions.triggered_by('delete', activity_type='opened')

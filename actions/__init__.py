@@ -190,21 +190,58 @@ def get_event_data(verbose=False):
     return event_data
 
 
-def get_event_trigger():
-    """Determine the name + type of the event that triggered the current workflow."""
-    event_name = get_env_var(GITHUB_EVENT_NAME)
+def verify_event_name(event_name):
+    """Verify whether specified event name is a known event name."""
     if event_name not in EVENT_TRIGGERS:
         raise ValueError("Unknown event name encountered: %s" % event_name)
 
-    event_type = get_event_data()[ACTION]
-    if event_type not in EVENT_TRIGGERS[event_name]:
-        raise ValueError("Unknown type of '%s' event encountered: %s" % (event_name, event_type))
 
-    return event_name + '.' + event_type
+def get_event_name():
+    """Determine name of event that triggered current workflow."""
+    event_name = get_env_var(GITHUB_EVENT_NAME)
+    verify_event_name(event_name)
+
+    return event_name
 
 
-def triggered_by(event_name):
-    """Check whether current workflow was triggered by event with specified name."""
+def verify_activity_type(activity_type, event_name=None):
+    """
+    Verify whether specified activity type is valid for event with specified name.
+    If 'event_name' is not specified, the name of the event that triggered the current workflow is used.
+    """
+    if event_name is None:
+        event_name = get_event_name()
+
+    if activity_type not in EVENT_TRIGGERS[event_name]:
+        raise ValueError("Unknown type of '%s' event encountered: %s" % (event_name, activity_type))
+
+
+def get_activity_type(event_name=None):
+    """Determine activity type of event that triggered current workflow."""
+    activity_type = get_event_data()[ACTION]
+    verify_activity_type(activity_type)
+
+    return activity_type
+
+
+def get_event_trigger():
+    """Determine the name + type of the event that triggered the current workflow."""
+    event_name = get_event_name()
+    activity_type = get_activity_type(event_name=event_name)
+
+    return event_name + '.' + activity_type
+
+
+def triggered_by(event_name, activity_type=None):
+    """Check whether current workflow was triggered by event with specified name & activity type."""
     event_trigger = get_event_trigger()
 
-    return event_trigger.startwith(event_name + '.')
+    verify_event_name(event_name)
+
+    if activity_type is None:
+        res = event_trigger.startswith(event_name + '.')
+    else:
+        verify_activity_type(activity_type, event_name=event_name)
+        res = event_trigger == event_name + '.' + activity_type
+
+    return res
