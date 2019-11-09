@@ -24,6 +24,11 @@ TEST_EVENT_DATA_RAW = """
 """
 
 
+@pytest.fixture(scope='function', autouse=True)
+def clear_caches():
+    actions.get_event_data.clear_cache()
+
+
 def test_get_env_var(monkeypatch):
     """Test get_env_var function."""
 
@@ -63,11 +68,28 @@ def test_get_event_data(capsys, monkeypatch, tmpdir):
     test_event_data.write('{}')
     assert(actions.get_event_data() == {})
 
+    # put test event data in place
+    test_event_data.write(TEST_EVENT_DATA_RAW)
+    event_data = actions.get_event_data()
+
+    # by default, cached result is returned, so we still get empty event data
+    assert(event_data == {})
+
+    # can be disabled via use_cache=False
+    event_data = actions.get_event_data(use_cache=False)
+    verify_parsed_test_event_data(event_data)
+
+    # cache can also be cleared using clear_cache()
+    actions.get_event_data.clear_cache()
+    test_event_data.write('{}')
+    assert(actions.get_event_data() == {})
+    actions.get_event_data.clear_cache()
+
+    # by default, no output is produced by get_event_data()
     test_event_data.write(TEST_EVENT_DATA_RAW)
     event_data = actions.get_event_data()
     verify_parsed_test_event_data(event_data)
 
-    # by default, no output is produced by get_event_data()
     captured = capsys.readouterr()
     assert(captured[0] == captured[1] == '')
 
