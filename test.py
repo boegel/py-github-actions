@@ -58,9 +58,12 @@ def test_get_event_data(capsys, monkeypatch, tmpdir):
         actions.get_event_data()
 
     test_event_data = tmpdir.join('test_event_data.json')
-    test_event_data.write(TEST_EVENT_DATA_RAW)
-
     monkeypatch.setenv('GITHUB_EVENT_PATH', str(test_event_data))
+
+    test_event_data.write('{}')
+    assert(actions.get_event_data() == {})
+
+    test_event_data.write(TEST_EVENT_DATA_RAW)
     event_data = actions.get_event_data()
     verify_parsed_test_event_data(event_data)
 
