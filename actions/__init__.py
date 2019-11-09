@@ -2,6 +2,8 @@ import json
 import os
 from pprint import pprint
 
+from github import Github
+
 
 def cached(function):
     """Simple decorator function to cache return value of wrapped function."""
