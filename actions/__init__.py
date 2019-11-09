@@ -1,5 +1,6 @@
 import json
 import os
+from pprint import pprint
 
 
 def get_env_var(name):
@@ -15,12 +16,19 @@ def get_env_var(name):
     return res
 
 
-def get_event_data():
-    """Return parsed JSON dict with event data (parsed from $GITHUB_EVENT_PATH)."""
+def get_event_data(verbose=False):
+    """
+    Return parsed JSON dict with event data (parsed from $GITHUB_EVENT_PATH).
+
+    :param verbose: whether or not to also print event data using pprint
+    """
     github_event_path = get_env_var('GITHUB_EVENT_PATH')
 
     with open(github_event_path) as fp:
         event_data  = json.load(fp)
+
+    if verbose:
+        pprint(event_data)
 
     return event_data
 

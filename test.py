@@ -39,7 +39,18 @@ def test_get_env_var(monkeypatch):
     assert(value == 'test123')
 
 
-def test_get_event_data(monkeypatch, tmpdir):
+def verify_parsed_test_event_data(event_data):
+    """Verify parsed test event data."""
+
+    assert(isinstance(event_data, dict))
+    assert(sorted(event_data.keys()) == ['actions', 'comment', 'issue', 'repository', 'sender'])
+    assert(event_data['actions'] == 'created')
+    assert(event_data['comment']['body'] == 'test')
+    assert(event_data['issue']['number'] == 123)
+    assert(event_data['repository']['owner']['login'] == 'boegel')
+
+
+def test_get_event_data(capsys, monkeypatch, tmpdir):
     """Test get_event_data function."""
 
     monkeypatch.delenv('GITHUB_EVENT_PATH', raising=False)
@@ -51,13 +62,18 @@ def test_get_event_data(monkeypatch, tmpdir):
 
     monkeypatch.setenv('GITHUB_EVENT_PATH', str(test_event_data))
     event_data = actions.get_event_data()
+    verify_parsed_test_event_data(event_data)
 
-    assert(isinstance(event_data, dict))
-    assert(sorted(event_data.keys()) == ['actions', 'comment', 'issue', 'repository', 'sender'])
-    assert(event_data['actions'] == 'created')
-    assert(event_data['comment']['body'] == 'test')
-    assert(event_data['issue']['number'] == 123)
-    assert(event_data['repository']['owner']['login'] == 'boegel')
+    # by default, no output is produced by get_event_data()
+    captured = capsys.readouterr()
+    assert(captured[0] == captured[1] == '')
+
+    event_data = actions.get_event_data(verbose=True)
+    verify_parsed_test_event_data(event_data)
+
+    captured = capsys.readouterr()
+    assert(captured[0].startswith("{u'actions': u'created',"))
+    assert('' == captured[1])
 
 
 def test_get_event_name(monkeypatch):
