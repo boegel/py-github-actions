@@ -1,7 +1,8 @@
 import os
 import pytest
 
-import actions
+from actions.event import get_event_data, get_event_trigger, triggered_by
+from actions.utils import get_env_var
 
 TEST_EVENT_DATA_RAW = """
 {
@@ -26,7 +27,7 @@ TEST_EVENT_DATA_RAW = """
 
 @pytest.fixture(scope='function', autouse=True)
 def clear_caches():
-    actions.get_event_data.clear_cache()
+    get_event_data.clear_cache()
 
 
 def test_get_env_var(monkeypatch):
@@ -37,10 +38,10 @@ def test_get_env_var(monkeypatch):
     # OSError is raised if environment is not defined
     monkeypatch.delenv(name, raising=False)
     with pytest.raises(OSError):
-        actions.get_env_var(name)
+        get_env_var(name)
 
     monkeypatch.setenv(name, 'test123')
-    value = actions.get_env_var(name)
+    value = get_env_var(name)
     assert(value == 'test123')
 
 
@@ -60,40 +61,40 @@ def test_get_event_data(capsys, monkeypatch, tmpdir):
 
     monkeypatch.delenv('GITHUB_EVENT_PATH', raising=False)
     with pytest.raises(OSError):
-        actions.get_event_data()
+        get_event_data()
 
     test_event_data = tmpdir.join('test_event_data.json')
     monkeypatch.setenv('GITHUB_EVENT_PATH', str(test_event_data))
 
     test_event_data.write('{}')
-    assert(actions.get_event_data() == {})
+    assert(get_event_data() == {})
 
     # put test event data in place
     test_event_data.write(TEST_EVENT_DATA_RAW)
-    event_data = actions.get_event_data()
+    event_data = get_event_data()
 
     # by default, cached result is returned, so we still get empty event data
     assert(event_data == {})
 
     # can be disabled via use_cache=False
-    event_data = actions.get_event_data(use_cache=False)
+    event_data = get_event_data(use_cache=False)
     verify_parsed_test_event_data(event_data)
 
     # cache can also be cleared using clear_cache()
-    actions.get_event_data.clear_cache()
+    get_event_data.clear_cache()
     test_event_data.write('{}')
-    assert(actions.get_event_data() == {})
-    actions.get_event_data.clear_cache()
+    assert(get_event_data() == {})
+    get_event_data.clear_cache()
 
     # by default, no output is produced by get_event_data()
     test_event_data.write(TEST_EVENT_DATA_RAW)
-    event_data = actions.get_event_data()
+    event_data = get_event_data()
     verify_parsed_test_event_data(event_data)
 
     captured = capsys.readouterr()
     assert(captured[0] == captured[1] == '')
 
-    event_data = actions.get_event_data(verbose=True)
+    event_data = get_event_data(verbose=True)
     verify_parsed_test_event_data(event_data)
 
     captured = capsys.readouterr()
@@ -107,7 +108,7 @@ def test_get_event_trigger(monkeypatch, tmpdir):
 
     monkeypatch.delenv('GITHUB_EVENT_NAME', raising=False)
     with pytest.raises(OSError):
-        actions.get_event_trigger()
+        get_event_trigger()
 
     monkeypatch.setenv('GITHUB_EVENT_NAME', 'issue_comment')
     # event type is determine via event data
@@ -116,7 +117,7 @@ def test_get_event_trigger(monkeypatch, tmpdir):
 
     monkeypatch.setenv('GITHUB_EVENT_PATH', str(test_event_data))
 
-    event_name = actions.get_event_trigger()
+    event_name = get_event_trigger()
     assert(event_name == 'issue_comment.created')
 
 
@@ -127,17 +128,17 @@ def test_triggered_by(monkeypatch, tmpdir):
     test_event_data.write(TEST_EVENT_DATA_RAW)
     monkeypatch.setenv('GITHUB_EVENT_PATH', str(test_event_data))
 
-    assert(actions.triggered_by('issue_comment'))
-    assert(actions.triggered_by('push') is False)
-    assert(actions.triggered_by('issue_comment', activity_type='created'))
-    assert(actions.triggered_by('issue_comment', activity_type='deleted') is False)
-    assert(actions.triggered_by('issue_comment', activity_type='edited') is False)
+    assert(triggered_by('issue_comment'))
+    assert(triggered_by('push') is False)
+    assert(triggered_by('issue_comment', activity_type='created'))
+    assert(triggered_by('issue_comment', activity_type='deleted') is False)
+    assert(triggered_by('issue_comment', activity_type='edited') is False)
 
     # using unknown event names or activity types triggers an exception
     with pytest.raises(ValueError):
-        actions.triggered_by('no_such_event_name')
-        actions.triggered_by('delete')  # 'deleted' is correct, 'delete' is not
-        actions.triggered_by('issue_comment', activity_type='no_such_activity_type')
-        actions.triggered_by('issue_comment', activity_type='opened')
-        actions.triggered_by('no_such_event_name', activity_type='no_such_activity_type')
-        actions.triggered_by('delete', activity_type='opened')
+        triggered_by('no_such_event_name')
+        triggered_by('delete')  # 'deleted' is correct, 'delete' is not
+        triggered_by('issue_comment', activity_type='no_such_activity_type')
+        triggered_by('issue_comment', activity_type='opened')
+        triggered_by('no_such_event_name', activity_type='no_such_activity_type')
+        triggered_by('delete', activity_type='opened')
