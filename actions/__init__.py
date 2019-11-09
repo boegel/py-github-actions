@@ -33,6 +33,11 @@ def get_event_data(verbose=False):
     return event_data
 
 
-def get_event_name():
-    """Determine the name of the event that triggered the current workflow."""
-    return get_env_var('GITHUB_EVENT_NAME')
+def get_event_trigger():
+    """Determine the name + type of the event that triggered the current workflow."""
+    event_name = get_env_var('GITHUB_EVENT_NAME')
+
+    event_data = get_event_data()
+    event_type = event_data['action']
+
+    return event_name + '.' + event_type
