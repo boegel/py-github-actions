@@ -27,7 +27,9 @@ def test_get_event_data(tmpdir):
     """Test get_event_data function."""
 
     # EnvironmentError is raised if $GITHUB_EVENT_PATH is not defined
-    with pytest.raises(EnvironmentError):
+    if 'GITHUB_EVENT_PATH' in os.environ:
+        del os.environ['GITHUB_EVENT_PATH']
+    with pytest.raises(OSError):
         get_event_data()
 
     test_event_data = tmpdir.join('test_event_data.json')
