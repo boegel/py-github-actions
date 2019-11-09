@@ -1,7 +1,7 @@
 import os
 import pytest
 
-from actions import get_event_data
+import actions
 
 TEST_EVENT_DATA_RAW = """
 {
@@ -23,20 +23,34 @@ TEST_EVENT_DATA_RAW = """
 }
 """
 
-def test_get_event_data(tmpdir):
+
+def test_get_env_var(monkeypatch):
+    """Test get_env_var function."""
+
+    name = 'TEST123'
+
+    # OSError is raised if environment is not defined
+    monkeypatch.delenv(name, raising=False)
+    with pytest.raises(OSError):
+        actions.get_env_var(name)
+
+    monkeypatch.setenv(name, 'test123')
+    value = actions.get_env_var(name)
+    assert(value == 'test123')
+
+
+def test_get_event_data(monkeypatch, tmpdir):
     """Test get_event_data function."""
 
-    # EnvironmentError is raised if $GITHUB_EVENT_PATH is not defined
-    if 'GITHUB_EVENT_PATH' in os.environ:
-        del os.environ['GITHUB_EVENT_PATH']
+    monkeypatch.delenv('GITHUB_EVENT_PATH', raising=False)
     with pytest.raises(OSError):
-        get_event_data()
+        actions.get_event_data()
 
     test_event_data = tmpdir.join('test_event_data.json')
     test_event_data.write(TEST_EVENT_DATA_RAW)
 
-    os.environ['GITHUB_EVENT_PATH'] = str(test_event_data)
-    event_data = get_event_data()
+    monkeypatch.setenv('GITHUB_EVENT_PATH', str(test_event_data))
+    event_data = actions.get_event_data()
 
     assert(isinstance(event_data, dict))
     assert(sorted(event_data.keys()) == ['actions', 'comment', 'issue', 'repository', 'sender'])
@@ -44,3 +58,15 @@ def test_get_event_data(tmpdir):
     assert(event_data['comment']['body'] == 'test')
     assert(event_data['issue']['number'] == 123)
     assert(event_data['repository']['owner']['login'] == 'boegel')
+
+
+def test_get_event_name(monkeypatch):
+    """Test get_event_name function."""
+
+    monkeypatch.delenv('GITHUB_EVENT_NAME', raising=False)
+    with pytest.raises(OSError):
+        actions.get_event_name()
+
+    monkeypatch.setenv('GITHUB_EVENT_NAME', 'test123')
+    event_name = actions.get_event_name()
+    assert(event_name == 'test123')
