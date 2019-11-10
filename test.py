@@ -1,33 +1,39 @@
+import json
 import os
 import pytest
 
 from actions.event import get_event_data, get_event_trigger, triggered_by
 from actions.utils import get_env_var, get_github_token
 
-TEST_EVENT_DATA_RAW = """
-{
-    "action": "created",
-    "comment": {
-        "body": "test",
-        "created_at": "1970-01-01T00:00:01",
-        "user": {"login": "boegel"}
+TEST_EVENT_DATA = {
+    'action': 'created',
+    'comment': {
+        'body': 'test',
+        'created_at': '1970-01-01T00:00:01',
+        'user': {'login': 'boegel'},
     },
-    "issue": {
-        "number": 123,
-        "user": {"login": "boegel"}
+    'issue': {
+        'number': 123,
+        'user': {'login': 'boegel'},
     },
-    "repository": {
-        "full_name": "boegel/github-actions",
-        "owner": {"login": "boegel"}
+    'repository': {
+        'full_name': 'boegel/github-actions',
+        'owner': {'login': 'boegel'},
     },
-    "sender": {"login": "boegel"}
+    'sender': {'login': 'boegel'},
 }
-"""
 
 
 @pytest.fixture(scope='function', autouse=True)
 def clear_caches():
     get_event_data.clear_cache()
+
+
+def install_test_event_data(monkeypatch, tmpdir, test_event_data=TEST_EVENT_DATA):
+    """Install test event data."""
+    test_event_data_fp = tmpdir.join('test_event_data.json')
+    test_event_data_fp.write(json.dumps(test_event_data))
+    monkeypatch.setenv('GITHUB_EVENT_PATH', str(test_event_data_fp))
 
 
 def test_get_env_var(monkeypatch):
@@ -47,7 +53,6 @@ def test_get_env_var(monkeypatch):
 
 def verify_parsed_test_event_data(event_data):
     """Verify parsed test event data."""
-
     assert(isinstance(event_data, dict))
     assert(sorted(event_data.keys()) == ['action', 'comment', 'issue', 'repository', 'sender'])
     assert(event_data['action'] == 'created')
@@ -63,14 +68,11 @@ def test_get_event_data(capsys, monkeypatch, tmpdir):
     with pytest.raises(OSError):
         get_event_data()
 
-    test_event_data = tmpdir.join('test_event_data.json')
-    monkeypatch.setenv('GITHUB_EVENT_PATH', str(test_event_data))
-
-    test_event_data.write('{}')
+    install_test_event_data(monkeypatch, tmpdir, test_event_data={})
     assert(get_event_data() == {})
 
     # put test event data in place
-    test_event_data.write(TEST_EVENT_DATA_RAW)
+    install_test_event_data(monkeypatch, tmpdir)
     event_data = get_event_data()
 
     # by default, cached result is returned, so we still get empty event data
@@ -82,12 +84,12 @@ def test_get_event_data(capsys, monkeypatch, tmpdir):
 
     # cache can also be cleared using clear_cache()
     get_event_data.clear_cache()
-    test_event_data.write('{}')
+    install_test_event_data(monkeypatch, tmpdir, test_event_data={})
     assert(get_event_data() == {})
     get_event_data.clear_cache()
 
     # by default, no output is produced by get_event_data()
-    test_event_data.write(TEST_EVENT_DATA_RAW)
+    install_test_event_data(monkeypatch, tmpdir)
     event_data = get_event_data()
     verify_parsed_test_event_data(event_data)
 
@@ -111,11 +113,8 @@ def test_get_event_trigger(monkeypatch, tmpdir):
         get_event_trigger()
 
     monkeypatch.setenv('GITHUB_EVENT_NAME', 'issue_comment')
-    # event type is determine via event data
-    test_event_data = tmpdir.join('test_event_data.json')
-    test_event_data.write(TEST_EVENT_DATA_RAW)
-
-    monkeypatch.setenv('GITHUB_EVENT_PATH', str(test_event_data))
+    # event type is determined via event data
+    install_test_event_data(monkeypatch, tmpdir)
 
     event_name = get_event_trigger()
     assert(event_name == 'issue_comment.created')
@@ -124,9 +123,7 @@ def test_get_event_trigger(monkeypatch, tmpdir):
 def test_triggered_by(monkeypatch, tmpdir):
     """Test triggered_by function."""
     monkeypatch.setenv('GITHUB_EVENT_NAME', 'issue_comment')
-    test_event_data = tmpdir.join('test_event_data.json')
-    test_event_data.write(TEST_EVENT_DATA_RAW)
-    monkeypatch.setenv('GITHUB_EVENT_PATH', str(test_event_data))
+    install_test_event_data(monkeypatch, tmpdir)
 
     assert(triggered_by('issue_comment'))
     assert(triggered_by('push') is False)
