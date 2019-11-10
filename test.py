@@ -18,6 +18,10 @@ TEST_EVENT_DATA = {
         'user': {'login': 'boegel'},
     },
     'issue': {
+        'labels': [
+            {'name': 'critical'},
+            {'name': 'bug'},
+        ],
         'number': 123,
         'user': {'login': 'boegel'},
     },
@@ -45,10 +49,6 @@ class MockedIssue(object):
 
     def get_comments(self):
         return [MockedComment(c) for c in ["hello world", "this is a comment"]]
-
-    @property
-    def labels(self):
-        return [MockedLabel(l) for l in ['critical', 'bug']]
 
 
 class MockedPR(object):

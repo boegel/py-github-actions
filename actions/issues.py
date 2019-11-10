@@ -63,9 +63,12 @@ def get_pr_review_comments():
 
 def get_label_names():
     """Get (sorted) list label names for issue (or pull request) that triggered current workflow."""
-    issue = _get_issue()
+    if not issue_or_pr_context():
+        raise RuntimeError("Current workflow was not triggered by an issue or pull request!")
 
-    return sorted([l.name for l in issue.labels])
+    event_data = get_event_data()
+
+    return sorted([l['name'] for l in event_data['issue']['labels']])
 
 
 def post_comment(txt):
