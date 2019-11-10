@@ -43,8 +43,7 @@ class MockedIssue(object):
     def create_comment(self, txt):
         return txt
 
-    @property
-    def comments(self):
+    def get_comments(self):
         return [MockedComment(c) for c in ["hello world", "this is a comment"]]
 
     @property
@@ -53,8 +52,7 @@ class MockedIssue(object):
 
 
 class MockedPR(object):
-    @property
-    def comments(self):
+    def get_comments(self):
         return [MockedComment('lgtm')]
 
 

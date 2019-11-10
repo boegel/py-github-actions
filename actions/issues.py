@@ -47,14 +47,18 @@ def get_issue_comments():
     """Get comments for issue (or pull request) that triggered current workflow."""
     issue = _get_issue()
 
-    return [c.body for c in issue.comments]
+    comments = issue.get_comments()
+
+    return [c.body for c in comments]
 
 
 def get_pr_review_comments():
     """Get pull request review comments for PR that triggered current workflow."""
     pr = _get_pr()
 
-    return [c.body for c in pr.comments]
+    comments = pr.get_comments()
+
+    return [c.body for c in comments]
 
 
 def get_label_names():
