@@ -5,6 +5,7 @@ import pytest
 
 import actions.issues
 from actions.event import get_event_data, get_event_trigger, triggered_by
+from actions.issues import get_issue_comments, get_label_names, get_pr_review_comments
 from actions.issues import issue_or_pr_context, pr_context, post_comment
 from actions.utils import get_env_var, get_github_token
 
@@ -28,14 +29,41 @@ TEST_EVENT_DATA = {
 }
 
 
+class MockedComment(object):
+    def __init__(self, body):
+        self.body = body
+
+
+class MockedLabel(object):
+    def __init__(self, name):
+        self.name = name
+
+
 class MockedIssue(object):
     def create_comment(self, txt):
         return txt
+
+    @property
+    def comments(self):
+        return [MockedComment(c) for c in ["hello world", "this is a comment"]]
+
+    @property
+    def labels(self):
+        return [MockedLabel(l) for l in ['critical', 'bug']]
+
+
+class MockedPR(object):
+    @property
+    def comments(self):
+        return [MockedComment('lgtm')]
 
 
 class MockedRepo(object):
     def get_issue(self, number):
         return MockedIssue()
+
+    def get_pull(self, number):
+        return MockedPR()
 
 
 class MockedGithub(object):
@@ -196,8 +224,34 @@ def test_issue_or_pr_context(monkeypatch, tmpdir):
     assert(pr_context() is False)
 
 
+def test_get_label_names(monkeypatch, tmpdir):
+    """Test get_label_names function."""
+    monkeypatch.setattr(actions.issues, 'Github', MockedGithub)
+    install_test_event_data(monkeypatch, tmpdir)
+
+    monkeypatch.setenv('GITHUB_TOKEN', 'thisisjustatest')
+    assert(get_label_names() == ['bug', 'critical'])
+
+
+def test_get_issue_comments(monkeypatch, tmpdir):
+    """Test get_issue_comments function."""
+    monkeypatch.setattr(actions.issues, 'Github', MockedGithub)
+    install_test_event_data(monkeypatch, tmpdir)
+
+    monkeypatch.setenv('GITHUB_TOKEN', 'thisisjustatest')
+    assert(get_issue_comments() == ["hello world", "this is a comment"])
+
+
+def test_get_pr_review_comments(monkeypatch, tmpdir):
+    monkeypatch.setattr(actions.issues, 'Github', MockedGithub)
+    install_test_event_data(monkeypatch, tmpdir)
+
+    monkeypatch.setenv('GITHUB_TOKEN', 'thisisjustatest')
+    assert(get_pr_review_comments() == ['lgtm'])
+
+
 def test_post_comment(monkeypatch, tmpdir):
-    """Test post_comment."""
+    """Test post_comment function."""
     monkeypatch.setattr(actions.issues, 'Github', MockedGithub)
     install_test_event_data(monkeypatch, tmpdir)
 
