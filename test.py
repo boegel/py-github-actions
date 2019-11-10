@@ -12,7 +12,7 @@ TEST_EVENT_NAME = 'issue_comment'
 TEST_EVENT_DATA = {
     'action': 'created',
     'comment': {
-        'body': 'test',
+        'body': 'testing, 1, 2, 3',
         'created_at': '1970-01-01T00:00:01',
         'user': {'login': 'boegel'},
     },
@@ -21,7 +21,7 @@ TEST_EVENT_DATA = {
         'user': {'login': 'boegel'},
     },
     'repository': {
-        'full_name': 'boegel/github-actions',
+        'full_name': 'boegel/py-github-actions',
         'owner': {'login': 'boegel'},
     },
     'sender': {'login': 'boegel'},
@@ -79,7 +79,7 @@ def verify_parsed_test_event_data(event_data):
     assert(isinstance(event_data, dict))
     assert(sorted(event_data.keys()) == ['action', 'comment', 'issue', 'repository', 'sender'])
     assert(event_data['action'] == 'created')
-    assert(event_data['comment']['body'] == 'test')
+    assert(event_data['comment']['body'] == 'testing, 1, 2, 3')
     assert(event_data['issue']['number'] == 123)
     assert(event_data['repository']['owner']['login'] == 'boegel')
 
@@ -209,3 +209,11 @@ def test_post_comment(monkeypatch, tmpdir):
     monkeypatch.setenv('GITHUB_TOKEN', 'thisisjustatest')
     txt = "this is just a test"
     assert(post_comment(txt) == txt)
+
+    txt = "Replying to comment '%(comment_body)s' sent by @%(sender_login)s"
+    assert(post_comment(txt) == "Replying to comment 'testing, 1, 2, 3' sent by @boegel")
+
+    # check what happens when unknown templates are used
+    for txt in ["What if we use an %(unknown_template_value)s?", "replying to @%(sender_login)s: %(foobar)s"]:
+        with pytest.raises(KeyError):
+            post_comment(txt)

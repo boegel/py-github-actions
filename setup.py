@@ -5,7 +5,7 @@ with open('README.md', 'r') as fh:
 
 setup(
     name='boegel',
-    version='0.0.6',
+    version='0.0.7',
     author="Kenneth Hoste",
     author_email='kenneth.hoste@ugent.be',
     description="Python library to facilitate using GitHub Actions",
