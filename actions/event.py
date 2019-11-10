@@ -7,7 +7,6 @@ from actions.constants import ACTION, EVENT_TRIGGERS, GITHUB_EVENT_NAME, GITHUB_
 from actions.utils import cached, get_env_var
 
 
-
 @cached
 def get_event_data(verbose=False):
     """

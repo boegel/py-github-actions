@@ -2,7 +2,7 @@ import os
 import pytest
 
 from actions.event import get_event_data, get_event_trigger, triggered_by
-from actions.utils import get_env_var
+from actions.utils import get_env_var, get_github_token
 
 TEST_EVENT_DATA_RAW = """
 {
@@ -142,3 +142,14 @@ def test_triggered_by(monkeypatch, tmpdir):
         triggered_by('issue_comment', activity_type='opened')
         triggered_by('no_such_event_name', activity_type='no_such_activity_type')
         triggered_by('delete', activity_type='opened')
+
+
+def test_get_github_token(monkeypatch):
+    """Test get_github_token function."""
+
+    monkeypatch.delenv('GITHUB_TOKEN', raising=False)
+    with pytest.raises(OSError):
+        get_github_token()
+
+    monkeypatch.setenv('GITHUB_TOKEN', 'thisisjustatest')
+    assert(get_github_token() == 'thisisjustatest')

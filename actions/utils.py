@@ -1,5 +1,7 @@
 import os
 
+from actions.constants import GITHUB_TOKEN
+
 
 def cached(function):
     """Simple decorator function to cache return value of wrapped function."""
@@ -39,3 +41,10 @@ def get_env_var(name):
         raise OSError("$%s not defined" % name)
 
     return res
+
+
+def get_github_token():
+    """
+    Get GitHub token provided by GitHub Actions (via $GITHUB_TOKEN).
+    """
+    return get_env_var(GITHUB_TOKEN)
