@@ -125,3 +125,10 @@ EVENT_TRIGGERS = {
     # external events
     REPOSITORY_DISPATCH: {},
 }
+
+# commit statuses
+# see https://developer.github.com/v3/repos/statuses
+STATUS_ERROR = 'error'
+STATUS_FAILURE = 'failure'
+STATUS_PENDING = 'pending'
+STATUS_SUCCESS = 'success'

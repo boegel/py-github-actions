@@ -4,8 +4,9 @@ import os
 import pytest
 
 import actions.issues
+from actions.constants import STATUS_SUCCESS
 from actions.event import get_event_data, get_event_trigger, triggered_by
-from actions.issues import get_issue_comments, get_label_names, get_pr_review_comments
+from actions.issues import get_issue_comments, get_label_names, get_pr_review_comments, get_pr_status
 from actions.issues import issue_or_pr_context, pr_context, post_comment
 from actions.utils import get_env_var, get_github_token
 
@@ -38,6 +39,14 @@ class MockedComment(object):
         self.body = body
 
 
+class MockedCommit(object):
+    def __init__(self, sha):
+        self.sha = sha
+
+    def get_combined_status(self):
+        return 'success'
+
+
 class MockedLabel(object):
     def __init__(self, name):
         self.name = name
@@ -55,8 +64,20 @@ class MockedPR(object):
     def get_comments(self):
         return [MockedComment('lgtm')]
 
+    @property
+    def head(self):
+        class MockedHead(object):
+            @property
+            def sha(self):
+                return 'sha123'
+
+        return MockedHead()
+
 
 class MockedRepo(object):
+    def get_commit(self, sha):
+        return MockedCommit(sha)
+
     def get_issue(self, number):
         return MockedIssue()
 
@@ -246,6 +267,14 @@ def test_get_pr_review_comments(monkeypatch, tmpdir):
 
     monkeypatch.setenv('GITHUB_TOKEN', 'thisisjustatest')
     assert(get_pr_review_comments() == ['lgtm'])
+
+
+def test_get_pr_status(monkeypatch, tmpdir):
+    monkeypatch.setattr(actions.issues, 'Github', MockedGithub)
+    install_test_event_data(monkeypatch, tmpdir)
+
+    monkeypatch.setenv('GITHUB_TOKEN', 'thisisjustatest')
+    assert(get_pr_status() == STATUS_SUCCESS)
 
 
 def test_post_comment(monkeypatch, tmpdir):

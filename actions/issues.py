@@ -25,21 +25,25 @@ def _get_repo():
     return repo
 
 
-def _get_issue():
+def _get_issue(repo=None):
     """Get issue that triggered current workflow."""
     if not issue_or_pr_context():
         raise RuntimeError("Current workflow was not triggered by an issue or pull request!")
 
-    repo = _get_repo()
+    if repo is None:
+        repo = _get_repo()
+
     return repo.get_issue(get_event_data()['issue']['number'])
 
 
-def _get_pr():
+def _get_pr(repo=None):
     """Get pull request that triggered current workflow."""
     if not pr_context():
         raise RuntimeError("Current workflow was not triggered by a pull request!")
 
-    repo = _get_repo()
+    if repo is None:
+        repo = _get_repo()
+
     return repo.get_pull(get_event_data()['issue']['number'])
 
 
@@ -61,6 +65,17 @@ def get_pr_review_comments():
     return [c.body for c in comments]
 
 
+def get_pr_status():
+    """Get (combined) status of pull request that triggered current workflow."""
+    repo = _get_repo()
+    pr = _get_pr(repo=repo)
+
+    last_pr_commit = repo.get_commit(pr.head.sha)
+    status = last_pr_commit.get_combined_status()
+
+    return status
+
+
 def get_label_names():
     """Get (sorted) list label names for issue (or pull request) that triggered current workflow."""
     if not issue_or_pr_context():
@@ -72,7 +87,7 @@ def get_label_names():
 
 
 def post_comment(txt):
-    """Post comment in issue (or pull reuqest) that triggered current workflow."""
+    """Post comment in issue (or pull request) that triggered current workflow."""
     event_data = get_event_data()
 
     templates = {}
