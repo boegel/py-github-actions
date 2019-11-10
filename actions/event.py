@@ -1,8 +1,6 @@
 import json
 from pprint import pprint
 
-from github import Github
-
 from actions.constants import ACTION, EVENT_TRIGGERS, GITHUB_EVENT_NAME, GITHUB_EVENT_PATH
 from actions.utils import cached, get_env_var
 

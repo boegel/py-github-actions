@@ -1,10 +1,14 @@
+import copy
 import json
 import os
 import pytest
 
+import actions.issues
 from actions.event import get_event_data, get_event_trigger, triggered_by
+from actions.issues import issue_or_pr_context, pr_context, post_comment
 from actions.utils import get_env_var, get_github_token
 
+TEST_EVENT_NAME = 'issue_comment'
 TEST_EVENT_DATA = {
     'action': 'created',
     'comment': {
@@ -24,15 +28,34 @@ TEST_EVENT_DATA = {
 }
 
 
+class MockedIssue(object):
+    def create_comment(self, txt):
+        return txt
+
+
+class MockedRepo(object):
+    def get_issue(self, number):
+        return MockedIssue()
+
+
+class MockedGithub(object):
+    def __init__(self, token):
+        pass
+
+    def get_repo(self, repo_name):
+        return MockedRepo()
+
+
 @pytest.fixture(scope='function', autouse=True)
 def clear_caches():
     get_event_data.clear_cache()
 
 
-def install_test_event_data(monkeypatch, tmpdir, test_event_data=TEST_EVENT_DATA):
+def install_test_event_data(monkeypatch, tmpdir, event_name=TEST_EVENT_NAME, event_data=TEST_EVENT_DATA):
     """Install test event data."""
+    monkeypatch.setenv('GITHUB_EVENT_NAME', event_name)
     test_event_data_fp = tmpdir.join('test_event_data.json')
-    test_event_data_fp.write(json.dumps(test_event_data))
+    test_event_data_fp.write(json.dumps(event_data))
     monkeypatch.setenv('GITHUB_EVENT_PATH', str(test_event_data_fp))
 
 
@@ -68,7 +91,7 @@ def test_get_event_data(capsys, monkeypatch, tmpdir):
     with pytest.raises(OSError):
         get_event_data()
 
-    install_test_event_data(monkeypatch, tmpdir, test_event_data={})
+    install_test_event_data(monkeypatch, tmpdir, event_data={})
     assert(get_event_data() == {})
 
     # put test event data in place
@@ -84,7 +107,7 @@ def test_get_event_data(capsys, monkeypatch, tmpdir):
 
     # cache can also be cleared using clear_cache()
     get_event_data.clear_cache()
-    install_test_event_data(monkeypatch, tmpdir, test_event_data={})
+    install_test_event_data(monkeypatch, tmpdir, event_data={})
     assert(get_event_data() == {})
     get_event_data.clear_cache()
 
@@ -112,7 +135,6 @@ def test_get_event_trigger(monkeypatch, tmpdir):
     with pytest.raises(OSError):
         get_event_trigger()
 
-    monkeypatch.setenv('GITHUB_EVENT_NAME', 'issue_comment')
     # event type is determined via event data
     install_test_event_data(monkeypatch, tmpdir)
 
@@ -122,7 +144,6 @@ def test_get_event_trigger(monkeypatch, tmpdir):
 
 def test_triggered_by(monkeypatch, tmpdir):
     """Test triggered_by function."""
-    monkeypatch.setenv('GITHUB_EVENT_NAME', 'issue_comment')
     install_test_event_data(monkeypatch, tmpdir)
 
     assert(triggered_by('issue_comment'))
@@ -150,3 +171,41 @@ def test_get_github_token(monkeypatch):
 
     monkeypatch.setenv('GITHUB_TOKEN', 'thisisjustatest')
     assert(get_github_token() == 'thisisjustatest')
+
+
+def test_issue_or_pr_context(monkeypatch, tmpdir):
+    """Test issue_or_pr_context function."""
+    install_test_event_data(monkeypatch, tmpdir)
+
+    assert(issue_or_pr_context())
+    assert(pr_context() is False)
+
+    test_event_data = copy.copy(TEST_EVENT_DATA)
+    test_event_data['issue']['pull_request'] = {}
+    install_test_event_data(monkeypatch, tmpdir, event_data=test_event_data)
+    get_event_data.clear_cache()
+
+    assert(issue_or_pr_context())
+    assert(pr_context())
+
+    del test_event_data['issue']
+    install_test_event_data(monkeypatch, tmpdir, event_data=test_event_data)
+    get_event_data.clear_cache()
+
+    assert(issue_or_pr_context() is False)
+    assert(pr_context() is False)
+
+
+def test_post_comment(monkeypatch, tmpdir):
+    """Test post_comment."""
+    monkeypatch.setattr(actions.issues, 'Github', MockedGithub)
+    install_test_event_data(monkeypatch, tmpdir)
+
+    # exception is raised if $GITHUB_TOKEN is not defined
+    monkeypatch.delenv('GITHUB_TOKEN', raising=False)
+    with pytest.raises(OSError):
+        post_comment("this is just a test")
+
+    monkeypatch.setenv('GITHUB_TOKEN', 'thisisjustatest')
+    txt = "this is just a test"
+    assert(post_comment(txt) == txt)
