@@ -7,13 +7,13 @@ from actions.utils import get_github_token
 def issue_or_pr_context():
     """Check if current workflow was triggered by an issue or pull request."""
     event_data = get_event_data()
-    return 'issue' in event_data
+    return 'issue' in event_data or 'pull_request' in event_data
 
 
 def pr_context():
     """Check if current workflow was triggered by a pull request."""
     event_data = get_event_data()
-    return 'pull_request' in event_data.get('issue', {})
+    return 'pull_request' in event_data or 'pull_request' in event_data.get('issue', {})
 
 
 def _get_repo():
@@ -25,6 +25,17 @@ def _get_repo():
     return repo
 
 
+def _get_event_data_key_from_issue_or_pr(key):
+    """Get value corresponding to specified key from event data for current workflow."""
+    event_data = get_event_data()
+    if 'issue' in event_data:
+        res = event_data['issue'][key]
+    else:
+        res = event_data['pull_request'][key]
+
+    return res
+
+
 def _get_issue(repo=None):
     """Get issue that triggered current workflow."""
     if not issue_or_pr_context():
@@ -33,7 +44,8 @@ def _get_issue(repo=None):
     if repo is None:
         repo = _get_repo()
 
-    return repo.get_issue(get_event_data()['issue']['number'])
+    issue_id = _get_event_data_key_from_issue_or_pr('number')
+    return repo.get_issue(issue_id)
 
 
 def _get_pr(repo=None):
@@ -44,7 +56,8 @@ def _get_pr(repo=None):
     if repo is None:
         repo = _get_repo()
 
-    return repo.get_pull(get_event_data()['issue']['number'])
+    pr_id = _get_event_data_key_from_issue_or_pr('number')
+    return repo.get_pull(pr_id)
 
 
 def get_issue_comments():
@@ -81,9 +94,9 @@ def get_label_names():
     if not issue_or_pr_context():
         raise RuntimeError("Current workflow was not triggered by an issue or pull request!")
 
-    event_data = get_event_data()
+    labels = _get_event_data_key_from_issue_or_pr('labels')
 
-    return sorted([l['name'] for l in event_data['issue']['labels']])
+    return sorted([l['name'] for l in labels])
 
 
 def get_milestone_title():
@@ -91,8 +104,7 @@ def get_milestone_title():
     if not issue_or_pr_context():
         raise RuntimeError("Current workflow was not triggered by an issue or pull request!")
 
-    event_data = get_event_data()
-    milestone = event_data['issue']['milestone']
+    milestone = _get_event_data_key_from_issue_or_pr('milestone')
     if milestone is None:
         res = None
     else:

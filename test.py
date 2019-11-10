@@ -248,6 +248,13 @@ def test_issue_or_pr_context(monkeypatch, tmpdir):
     assert(issue_or_pr_context() is False)
     assert(pr_context() is False)
 
+    test_event_data['pull_request'] = {'number': 123}
+    install_test_event_data(monkeypatch, tmpdir, event_data=test_event_data)
+    get_event_data.clear_cache()
+
+    assert(issue_or_pr_context())
+    assert(pr_context())
+
 
 def test_get_label_names(monkeypatch, tmpdir):
     """Test get_label_names function."""
@@ -256,6 +263,14 @@ def test_get_label_names(monkeypatch, tmpdir):
 
     monkeypatch.setenv('GITHUB_TOKEN', 'thisisjustatest')
     assert(get_label_names() == ['bug', 'critical'])
+
+    test_event_data = copy.copy(TEST_EVENT_DATA)
+    del test_event_data['issue']
+    test_event_data['pull_request'] = {'labels': [{'name': 'feature'}, {'name': 'enhancement'}]}
+    install_test_event_data(monkeypatch, tmpdir, event_data=test_event_data)
+    get_event_data.clear_cache()
+
+    assert(get_label_names() == ['enhancement', 'feature'])
 
 
 def test_get_milestone_title(monkeypatch, tmpdir):
@@ -272,6 +287,13 @@ def test_get_milestone_title(monkeypatch, tmpdir):
     get_event_data.clear_cache()
 
     assert(get_milestone_title() == 'test_milestone')
+
+    del test_event_data['issue']
+    test_event_data['pull_request'] = {'milestone': {'title': 'next release'}}
+    install_test_event_data(monkeypatch, tmpdir, event_data=test_event_data)
+    get_event_data.clear_cache()
+
+    assert(get_milestone_title() == 'next release')
 
 
 def test_get_issue_comments(monkeypatch, tmpdir):
