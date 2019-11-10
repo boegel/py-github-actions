@@ -86,6 +86,21 @@ def get_label_names():
     return sorted([l['name'] for l in event_data['issue']['labels']])
 
 
+def get_milestone_title():
+    """Get milestone title (if any) for issue (or pull request) that triggered current workflow."""
+    if not issue_or_pr_context():
+        raise RuntimeError("Current workflow was not triggered by an issue or pull request!")
+
+    event_data = get_event_data()
+    milestone = event_data['issue']['milestone']
+    if milestone is None:
+        res = None
+    else:
+        res = milestone['title']
+
+    return res
+
+
 def post_comment(txt):
     """Post comment in issue (or pull request) that triggered current workflow."""
     event_data = get_event_data()

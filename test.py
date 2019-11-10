@@ -6,8 +6,8 @@ import pytest
 import actions.issues
 from actions.constants import STATUS_SUCCESS
 from actions.event import get_event_data, get_event_trigger, triggered_by
-from actions.issues import get_issue_comments, get_label_names, get_pr_review_comments, get_pr_status
-from actions.issues import issue_or_pr_context, pr_context, post_comment
+from actions.issues import get_issue_comments, get_label_names, get_milestone_title, get_pr_review_comments
+from actions.issues import get_pr_status, issue_or_pr_context, pr_context, post_comment
 from actions.utils import get_env_var, get_github_token
 
 TEST_EVENT_NAME = 'issue_comment'
@@ -23,6 +23,7 @@ TEST_EVENT_DATA = {
             {'name': 'critical'},
             {'name': 'bug'},
         ],
+        'milestone': None,
         'number': 123,
         'user': {'login': 'boegel'},
     },
@@ -255,6 +256,22 @@ def test_get_label_names(monkeypatch, tmpdir):
 
     monkeypatch.setenv('GITHUB_TOKEN', 'thisisjustatest')
     assert(get_label_names() == ['bug', 'critical'])
+
+
+def test_get_milestone_title(monkeypatch, tmpdir):
+    """Test get_milestone_title function."""
+    monkeypatch.setattr(actions.issues, 'Github', MockedGithub)
+    install_test_event_data(monkeypatch, tmpdir)
+
+    monkeypatch.setenv('GITHUB_TOKEN', 'thisisjustatest')
+    assert(get_milestone_title() is None)
+
+    test_event_data = copy.copy(TEST_EVENT_DATA)
+    test_event_data['issue']['milestone'] = {'title': 'test_milestone'}
+    install_test_event_data(monkeypatch, tmpdir, event_data=test_event_data)
+    get_event_data.clear_cache()
+
+    assert(get_milestone_title() == 'test_milestone')
 
 
 def test_get_issue_comments(monkeypatch, tmpdir):
