@@ -44,7 +44,12 @@ class MockedCommit(object):
         self.sha = sha
 
     def get_combined_status(self):
-        return 'success'
+        class MockedCombinedStatus(object):
+            @property
+            def state(self):
+                return 'success'
+
+        return MockedCombinedStatus()
 
 
 class MockedLabel(object):

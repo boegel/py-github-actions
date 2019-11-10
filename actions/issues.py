@@ -71,7 +71,7 @@ def get_pr_status():
     pr = _get_pr(repo=repo)
 
     last_pr_commit = repo.get_commit(pr.head.sha)
-    status = last_pr_commit.get_combined_status()
+    status = last_pr_commit.get_combined_status().state
 
     return status
 
